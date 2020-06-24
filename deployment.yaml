@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: go-server
-        image: docker.io/aleckzts/go-server
+        image: img-app-deployment
         ports:
         - containerPort: 8000
         resources:
