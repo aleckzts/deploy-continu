@@ -1,0 +1,36 @@
+steps:
+  - id: "Build do source em Go"
+    name: 'gcr.io/cloud-builders/go:alpine'
+    args: ['install', 'server']
+    env: ['GOPATH=./']
+
+  - id: "Teste do compilado"
+    name: 'gcr.io/cloud-builders/go:alpine'
+    args: ['test', 'server']
+    env: ['GOPATH=./']
+
+  - id: "Building image from Dockerfile.prod"
+    name: "gcr.io/cloud-builders/docker"
+    args: ['build','-t','gcr.io/$PROJECT_ID/go-server:$SHORT_SHA','-f','Dockerfile','.']
+
+  - id: "Pushing image"
+    name: "gcr.io/cloud-builders/docker"
+    args: ['push','gcr.io/$PROJECT_ID/go-server:$SHORT_SHA']
+
+  - id: "Adjusting deployment file -- k8s"
+    name: "gcr.io/cloud-builders/gcloud"
+    entrypoint: '/bin/sh'
+    args:
+      - '-c'
+      - |
+        sed 's#img-app-deployment#gcr.io/$PROJECT_ID/go-server:$SHORT_SHA#g' ./deployment.yaml > ./deployment.prod.yaml;
+
+  - id: "Deploy GoServer -- k8s"
+    name: "gcr.io/cloud-builders/kubectl"
+    args:
+      - 'apply'
+      - '-f'
+      - './deployment.prod.yaml'
+    env:
+      - 'CLOUDSDK_COMPUTE_ZONE=us-central1-c'
+      - 'CLOUDSDK_CONTAINER_CLUSTER=codeedu-laravel'
